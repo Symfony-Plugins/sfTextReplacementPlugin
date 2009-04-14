@@ -1,0 +1,9 @@
+span.sfTextReplacement span
+{
+  display: none;
+}
+span.sfTextReplacement
+{
+  display:block; 
+  background-repeat: no-repeat;
+}

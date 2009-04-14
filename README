@@ -1,0 +1,156 @@
+= sfTextReplacementPlugin =
+sfTextReplacement is a plugin based on the article "Dynamic Text Replacement" on [[http://www.alistapart.com/articles/dynatext A List Apart]]. It provides different methods to replace text with anti-aliased images which are generated on-the-fly and supports any TrueType fonts supported by GD Lib.
+
+[[Image(sample_output.gif)]]
+ 
+== Installation ==
+Install sfTextReplacement using symfony:
+{{{
+$ symfony plugin-install http://plugins.symfony-project.com/sfTextReplacementPlugin
+}}}
+
+Activate the module in your applications config/settings.yml:
+{{{
+all:  
+  .settings:
+    enabled_modules:        [sfTextReplacement]
+}}}
+
+Create a sfTextReplacementPlugin.yml in your project's (not application's) config directory and add the following:
+{{{
+all:
+  caching:          true
+  cachedir:         web/textReplacement/
+  cacheinwebdir:    true
+  fontdir:          plugins/sfTextReplacement/data/
+  
+  selectors:
+    default:
+      backgroundColor:         '#ffffff'
+      fontColor:               '#17619f'
+      fontFile:                'JOURNAL_.TTF' 
+      transparentBackground:   true
+      fontSize:                50
+     
+}}}
+
+Set a config handler for the sfTextReplacementPlugin.yml:
+
+  * Create a config_handlers.yml file in the project's config directory
+  * paste the following code:
+
+{{{
+config/sfTextReplacementPlugin.yml:
+  class: sfDefineEnvironmentConfigHandler
+  param:
+    prefix: sfTextReplacementPlugin_
+}}}
+
+Create a directory in the web dir: textReplacement (the same as cachedir is set in sfTextReplacementPlugin.yml)
+
+Edit the .htaccess file in your web directory:
+Change:
+{{{
+  # we skip all files with .something
+  RewriteCond %{REQUEST_URI} \..+$
+  RewriteCond %{REQUEST_URI} !\.html$
+  RewriteRule .* - [L]
+}}}
+To:
+{{{
+  # we skip all files with .something
+  RewriteCond %{REQUEST_URI} \..+$
+  RewriteCond %{REQUEST_URI} !\.html$
+  RewriteCond %{REQUEST_URI} !\.png$
+  RewriteRule .* - [L]
+}}}
+Edit your app.yml to register the routes:
+{{{
+  sfTextReplacementPlugin:
+    routes_register: true
+}}}
+optionally, you can define your own routes:
+{{{
+sfTextReplacementImageSelector:
+  url: /textReplacement/:selector/:text.png
+  params: {module: sfTextReplacement, action: index}
+  
+sfTextReplacementImage:
+  url: /textReplacement/:text.png
+  params: {module: sfTextReplacement, action: index}
+  
+#Base Route - is needed to provide the base URL to the JavaScript. Whenever you change the routes above, change this one as well  
+sfTextReplacementImageSelector:
+  url: /textReplacement/
+  params: {module: sfTextReplacement, action: index} 
+}}}
+Clear the symfony cache:
+{{{
+$ symfony cc
+}}}
+
+== Configuration ==
+You can create different selectors with predefined font sizes, background colors, font families, etc. Just add a new selector in the 
+sfTextReplacementPlugin.yml file, for example:
+
+{{{
+    h1:
+      fontSize:   20
+      fontColor:  '#ba52b7'
+      fontFile:   'AVA.TTF' 
+}}}
+
+== Usage ==
+There are currently three different methods to use this plugin:
+=== graphical_text() ===
+{{{
+<?php use_helper('TextReplacement'); ?>
+
+
+<?php echo graphical_text('Text', 'h1'); ?>
+}}}
+
+will output
+{{{
+<img src="/sfTextReplacement/h1/Text.png" alt="Text" />
+}}}
+
+
+=== seo_graphical_text() ===
+{{{
+<?php use_helper('TextReplacement'); ?>
+
+
+<?php echo seo_graphical_text('Text', 'h1'); ?>
+}}}
+
+will output
+{{{
+<span class="sfTextReplacement" style="width: xxWidth px; height: xxHeight px; background-image: url(/sfTextReplacement/h1/Text.png);"><span>Text</span></span>
+}}}
+
+It will also add a stylesheet to your response, which includes the followign CSS rules:
+{{{
+span.sfTextReplacement span
+{
+  display: none;
+}
+span.sfTextReplacement
+{
+  display:block; 
+  background-repeat: no-repeat;
+}
+}}}
+
+So the result is an SEO friendly text replacement that's also acceptable for disabled people using a text-browser.
+
+=== js_replace_text() ===
+
+{{{
+<?php echo js_replace_text('h1'); ?>
+}}}
+
+will outout an JavaScript code that will dynamically replace all "<h1>" tags with their image representation.
+
+== Changelog ==
+* 16/05/2008 - fixed bug in js_replace_text, added multiple selectors, added log messages, fixed some smaller bugs. Thx to Vincent Agnano
